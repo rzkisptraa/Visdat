@@ -296,6 +296,7 @@ function getMondayDate(dateStr) {
 function autoScaleY(chart) {
     if (!chart || !chart.scales || !chart.scales.x || !chart.scales.y) return;
     if (chart.canvas.id === 'momentumChart') return; // Keep Momentum fixed 0-100
+    if (chart.isAutoYScale === false) return; // Skip if user panned vertically
     
     const xScale = chart.scales.x;
     const minIndex = Math.max(0, Math.floor(xScale.min));
@@ -369,6 +370,7 @@ function updateInsightsFromChart() {
 // Handle double click reset interaction
 function handleChartReset(chart) {
     if (!chart) return;
+    chart.isAutoYScale = true; // Re-enable auto-scale on reset
     const N = chart.data.labels.length;
     let defaultZoom = N;
     if (currentTimeframe === 'daily') defaultZoom = 252;
@@ -410,9 +412,14 @@ function renderRelativeChart() {
                     },
                     pan: {
                         enabled: true,
-                        mode: 'x',
-                        onPan: ({chart}) => {
-                            autoScaleY(chart);
+                        mode: 'xy', // 360 degree pan like TradingView
+                        onPan: ({chart, event}) => {
+                            if (event && Math.abs(event.deltaY) > 5) {
+                                chart.isAutoYScale = false; // Disable auto Y scale if vertical drag occurs
+                            }
+                            if (chart.isAutoYScale !== false) {
+                                autoScaleY(chart);
+                            }
                             chart.update('none');
                         }
                     },
@@ -424,9 +431,11 @@ function renderRelativeChart() {
                         pinch: {
                             enabled: true
                         },
-                        mode: 'x',
+                        mode: 'x', // Zoom X axis only
                         onZoom: ({chart}) => {
-                            autoScaleY(chart);
+                            if (chart.isAutoYScale !== false) {
+                                autoScaleY(chart);
+                            }
                             chart.update('none');
                         }
                     }
@@ -519,6 +528,7 @@ function updateRelativeChart() {
     relativeChart.options.scales.x.min = minIndex;
     relativeChart.options.scales.x.max = maxIndex;
     
+    relativeChart.isAutoYScale = true;
     autoScaleY(relativeChart);
     relativeChart.update('none');
 }
@@ -558,6 +568,7 @@ function updateSelectedStockView(ticker) {
     if (trendChart) {
         trendChart.options.scales.x.min = minIndex;
         trendChart.options.scales.x.max = maxIndex;
+        trendChart.isAutoYScale = true;
         autoScaleY(trendChart);
         trendChart.update('none');
     }
@@ -637,10 +648,15 @@ function updateTrendChart(labels, closePrices, ma20, ma50, ticker) {
                         },
                         pan: {
                             enabled: true,
-                            mode: 'x',
-                            onPan: ({chart}) => {
+                            mode: 'xy', // 360 degree pan
+                            onPan: ({chart, event}) => {
+                                if (event && Math.abs(event.deltaY) > 5) {
+                                    chart.isAutoYScale = false; // Disable auto Y scale if vertical drag occurs
+                                }
                                 syncXAxis(chart, momentumChart);
-                                autoScaleY(chart);
+                                if (chart.isAutoYScale !== false) {
+                                    autoScaleY(chart);
+                                }
                                 chart.update('none');
                                 updateInsightsFromChart();
                             }
@@ -656,7 +672,9 @@ function updateTrendChart(labels, closePrices, ma20, ma50, ticker) {
                             mode: 'x',
                             onZoom: ({chart}) => {
                                 syncXAxis(chart, momentumChart);
-                                autoScaleY(chart);
+                                if (chart.isAutoYScale !== false) {
+                                    autoScaleY(chart);
+                                }
                                 chart.update('none');
                                 updateInsightsFromChart();
                             }
@@ -757,10 +775,13 @@ function updateMomentumChart(labels, k, d) {
                         },
                         pan: {
                             enabled: true,
-                            mode: 'x',
+                            mode: 'x', // Keep Y scale fixed (0-100) on momentum chart
                             onPan: ({chart}) => {
                                 syncXAxis(chart, trendChart);
-                                autoScaleY(trendChart);
+                                if (trendChart.isAutoYScale !== false) {
+                                    autoScaleY(trendChart);
+                                }
+                                trendChart.update('none');
                                 chart.update('none');
                                 updateInsightsFromChart();
                             }
@@ -776,7 +797,10 @@ function updateMomentumChart(labels, k, d) {
                             mode: 'x',
                             onZoom: ({chart}) => {
                                 syncXAxis(chart, trendChart);
-                                autoScaleY(trendChart);
+                                if (trendChart.isAutoYScale !== false) {
+                                    autoScaleY(trendChart);
+                                }
+                                trendChart.update('none');
                                 chart.update('none');
                                 updateInsightsFromChart();
                             }
