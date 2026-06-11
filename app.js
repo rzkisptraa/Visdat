@@ -353,11 +353,12 @@ function autoScaleY(chart) {
             if (valMax > maxVal) maxVal = valMax;
         });
     });
-    
     if (minVal !== Infinity && maxVal !== -Infinity) {
         if (chart.canvas.id === 'volumeChart') {
-            chart.options.scales.y.min = 0;
-            chart.options.scales.y.max = maxVal * 1.1; // 10% headroom
+            const maxAbs = Math.max(Math.abs(minVal), Math.abs(maxVal));
+            const finalMax = maxAbs || 1.0;
+            chart.options.scales.y.min = -finalMax * 1.15; // 15% headroom
+            chart.options.scales.y.max = finalMax * 1.15;
         } else {
             const range = maxVal - minVal;
             const padding = range * 0.05 || 1.0;
@@ -770,6 +771,10 @@ function updateTrendChart(resampled, ticker) {
                         onPan: ({chart}) => {
                             syncXAxis(chart, volumeChart);
                             autoScaleY(chart);
+                            if (volumeChart) {
+                                autoScaleY(volumeChart);
+                                volumeChart.update('none');
+                            }
                             chart.update('none');
                             updateInsightsFromChart();
                         }
@@ -781,6 +786,10 @@ function updateTrendChart(resampled, ticker) {
                         onZoom: ({chart}) => {
                             syncXAxis(chart, volumeChart);
                             autoScaleY(chart);
+                            if (volumeChart) {
+                                autoScaleY(volumeChart);
+                                volumeChart.update('none');
+                            }
                             chart.update('none');
                             updateInsightsFromChart();
                         }
@@ -932,7 +941,11 @@ function updateMACDChart(resampled) {
                         mode: 'x',
                         onPan: ({chart}) => {
                             syncXAxis(chart, trendChart);
-                            autoScaleY(trendChart);
+                            autoScaleY(chart);
+                            if (trendChart) {
+                                autoScaleY(trendChart);
+                                trendChart.update('none');
+                            }
                             chart.update('none');
                             updateInsightsFromChart();
                         }
@@ -943,7 +956,11 @@ function updateMACDChart(resampled) {
                         mode: 'x',
                         onZoom: ({chart}) => {
                             syncXAxis(chart, trendChart);
-                            autoScaleY(trendChart);
+                            autoScaleY(chart);
+                            if (trendChart) {
+                                autoScaleY(trendChart);
+                                trendChart.update('none');
+                            }
                             chart.update('none');
                             updateInsightsFromChart();
                         }
@@ -989,7 +1006,9 @@ function updateMACDChart(resampled) {
                         color: '#9CA3AF',
                         font: { family: 'Inter', size: 10 },
                         callback: function(value) {
-                            return value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                            if (value > 0) return '+' + value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                            if (value < 0) return value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                            return '0';
                         }
                     },
                     afterFit: function(scaleInstance) {
