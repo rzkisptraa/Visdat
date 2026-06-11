@@ -524,6 +524,7 @@ function renderRelativeChart() {
                                 // Add actual price validation to tooltip
                                 const dataIndex = context.dataIndex;
                                 const prices = context.dataset.prices;
+                                const firstClose = context.dataset.firstClose;
                                 if (prices && prices[dataIndex] !== null && prices[dataIndex] !== undefined) {
                                     const actualPrice = prices[dataIndex];
                                     const ticker = context.dataset.label;
@@ -531,10 +532,22 @@ function renderRelativeChart() {
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 2
                                     });
-                                    if (ticker.includes('IHSG')) {
-                                        label += ` (${formattedPrice})`;
+                                    if (firstClose !== null && firstClose !== undefined) {
+                                        const formattedFirst = firstClose.toLocaleString('id-ID', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 2
+                                        });
+                                        if (ticker.includes('IHSG')) {
+                                            label += ` (${formattedFirst} → ${formattedPrice})`;
+                                        } else {
+                                            label += ` (Rp ${formattedFirst} → Rp ${formattedPrice})`;
+                                        }
                                     } else {
-                                        label += ` (Rp ${formattedPrice})`;
+                                        if (ticker.includes('IHSG')) {
+                                            label += ` (${formattedPrice})`;
+                                        } else {
+                                            label += ` (Rp ${formattedPrice})`;
+                                        }
                                     }
                                 }
                             }
@@ -572,6 +585,10 @@ function updateRelativeChart() {
     const datasets = Object.keys(pricesData).map(ticker => {
         const resampled = resampleDataset(pricesData[ticker], relativeTimeframe);
         
+        const rawData = pricesData[ticker];
+        const firstActiveItem = rawData.find(item => item.active !== false);
+        const firstClose = firstActiveItem ? firstActiveItem.close : null;
+        
         const rebasedData = resampled.map(item => item.rebased);
         const pricesList = resampled.map(item => item.active !== false ? item.close : null);
         
@@ -579,6 +596,7 @@ function updateRelativeChart() {
             label: ticker === 'IHSG' ? 'IHSG (Benchmark)' : ticker,
             data: rebasedData,
             prices: pricesList,
+            firstClose: firstClose,
             borderColor: ASSET_COLORS[ticker] || '#FFF',
             borderWidth: ticker === 'IHSG' ? 3 : 1.8,
             pointRadius: 0,
