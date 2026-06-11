@@ -90,14 +90,14 @@ def main():
         df['ma20'] = df['close'].rolling(window=20).mean()
         df['ma50'] = df['close'].rolling(window=50).mean()
         
-        # Calculate Stochastic Oscillator (14, 3, 3)
-        df['low_14'] = df['low'].rolling(window=14).min()
-        df['high_14'] = df['high'].rolling(window=14).max()
+        # Calculate Stochastic Oscillator (5, 3, 3)
+        df['low_5'] = df['low'].rolling(window=5).min()
+        df['high_5'] = df['high'].rolling(window=5).max()
         
         # Raw %K
-        denominator = df['high_14'] - df['low_14']
+        denominator = df['high_5'] - df['low_5']
         # Handle zero division if high and low are equal
-        df['raw_k'] = np.where(denominator != 0, 100 * (df['close'] - df['low_14']) / denominator, 50.0)
+        df['raw_k'] = np.where(denominator != 0, 100 * (df['close'] - df['low_5']) / denominator, 50.0)
         
         # Smooth %K (3-day SMA)
         df['k'] = df['raw_k'].rolling(window=3).mean()
