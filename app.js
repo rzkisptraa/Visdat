@@ -697,6 +697,9 @@ function updateTrendChart(labels, closePrices, ma20, ma50, ticker) {
                             color: '#9CA3AF',
                             font: { family: 'Inter', size: 10 },
                             callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }
+                        },
+                        afterFit: function(scaleInstance) {
+                            scaleInstance.width = 90;
                         }
                     }
                 }
@@ -813,7 +816,10 @@ function updateMomentumChart(labels, k, d) {
                         min: 0,
                         max: 100,
                         grid: { color: 'rgba(255, 255, 255, 0.05)', drawTicks: false },
-                        ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 10 } }
+                        ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 10 } },
+                        afterFit: function(scaleInstance) {
+                            scaleInstance.width = 90;
+                        }
                     }
                 }
             }
