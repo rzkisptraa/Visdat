@@ -193,10 +193,10 @@ async function initDashboard() {
         
         // Add dropdown change listener
         stockSelect.addEventListener('change', (e) => {
-            // When stock changes, reset the detailed controls to show all points for this timeframe
+            // When stock changes, reset the detailed controls to show the most recent 252 points for this timeframe
             const N = getResampledLength(e.target.value);
-            detailZoomVal = N;
-            detailScrollVal = 0;
+            detailZoomVal = Math.min(252, N);
+            detailScrollVal = N - detailZoomVal;
             detailScaleYVal = 100;
             dScaleY.value = 100;
             document.getElementById('detail-scale-y-val').textContent = 'Auto';
@@ -294,32 +294,42 @@ function updateAllViews() {
 // Reset Slider ranges and parameters for a new Timeframe
 function resetSlidersForTimeframe() {
     const N1 = getResampledLength('IHSG');
-    chart1ZoomVal = N1;
-    chart1ScrollVal = 0;
+    chart1ZoomVal = Math.min(252, N1);
+    chart1ScrollVal = N1 - chart1ZoomVal; // Show the most recent period
     chart1ScaleYVal = 100;
     
-    document.getElementById('chart1-zoom').value = N1;
-    document.getElementById('chart1-zoom').max = N1;
-    document.getElementById('chart1-scroll').value = 0;
-    document.getElementById('chart1-scroll').max = 0;
-    document.getElementById('chart1-scroll').disabled = true;
-    document.getElementById('chart1-scale-y').value = 100;
-    document.getElementById('chart1-zoom-val').textContent = 'All';
+    const c1Zoom = document.getElementById('chart1-zoom');
+    const c1Scroll = document.getElementById('chart1-scroll');
+    const c1ScaleY = document.getElementById('chart1-scale-y');
+    
+    c1Zoom.max = N1;
+    c1Zoom.value = chart1ZoomVal;
+    c1Scroll.max = N1 - chart1ZoomVal;
+    c1Scroll.value = chart1ScrollVal;
+    c1Scroll.disabled = (N1 - chart1ZoomVal) <= 0;
+    c1ScaleY.value = 100;
+    
+    document.getElementById('chart1-zoom-val').textContent = chart1ZoomVal === N1 ? 'All' : chart1ZoomVal;
     document.getElementById('chart1-scale-y-val').textContent = 'Auto';
     
     const currentStock = document.getElementById('stock-select').value;
     const N2 = getResampledLength(currentStock);
-    detailZoomVal = N2;
-    detailScrollVal = 0;
+    detailZoomVal = Math.min(252, N2);
+    detailScrollVal = N2 - detailZoomVal; // Show the most recent period
     detailScaleYVal = 100;
     
-    document.getElementById('detail-zoom').value = N2;
-    document.getElementById('detail-zoom').max = N2;
-    document.getElementById('detail-scroll').value = 0;
-    document.getElementById('detail-scroll').max = 0;
-    document.getElementById('detail-scroll').disabled = true;
-    document.getElementById('detail-scale-y').value = 100;
-    document.getElementById('detail-zoom-val').textContent = 'All';
+    const dZoom = document.getElementById('detail-zoom');
+    const dScroll = document.getElementById('detail-scroll');
+    const dScaleY = document.getElementById('detail-scale-y');
+    
+    dZoom.max = N2;
+    dZoom.value = detailZoomVal;
+    dScroll.max = N2 - detailZoomVal;
+    dScroll.value = detailScrollVal;
+    dScroll.disabled = (N2 - detailZoomVal) <= 0;
+    dScaleY.value = 100;
+    
+    document.getElementById('detail-zoom-val').textContent = detailZoomVal === N2 ? 'All' : detailZoomVal;
     document.getElementById('detail-scale-y-val').textContent = 'Auto';
 }
 
