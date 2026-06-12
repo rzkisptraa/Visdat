@@ -1,109 +1,71 @@
-# Dashboard Visualisasi Data Pasar Saham Indonesia
+# Dashboard Kinerja Saham Indonesia
 
-## Analisis Performa Saham Indonesia terhadap IHSG
-### Visualisasi Relative Performance, Tren, dan Momentum Menggunakan MA20, MA50, dan Stochastic Oscillator
+> Dashboard interaktif untuk menganalisis dan memvisualisasikan performa kumulatif, tren harga, dan momentum 9 saham blue-chip Indonesia (Magnificent 7 + ASII & ANTM) terhadap IHSG dengan data historis nyata yang bersumber dari Yahoo Finance.
 
-Proyek ini adalah dashboard finansial interaktif berbasis web statis (tanpa backend server) untuk menganalisis dan membandingkan performa 6 saham blue-chip Indonesia (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `BREN`, `AMMN`) terhadap Indeks Harga Saham Gabungan (`IHSG`) sebagai acuan pasar.
+🌐 Demo: https://indonesia-market-dashboard.vercel.app
 
----
+## Isi Dashboard
 
-## 1. Fitur Utama
+- **Chart 1: Performa Relatif Saham terhadap IHSG** — Menampilkan grafik multiline persentase keuntungan akumulatif seluruh 9 saham dan IHSG (benchmark) yang telah direbase ke 100% untuk perbandingan kinerja yang adil sejak awal periode.
+- **Chart 2: Analisis Tren Harga Saham** — Grafik Candlestick harga harian saham terpilih yang dilengkapi dengan garis rata-rata pergerakan MA20 (tren jangka pendek) dan MA50 (tren jangka menengah) untuk membaca tren pasar.
+- **Chart 3: Analisis Momentum MACD** — Grafik Moving Average Convergence Divergence (MACD Line, Signal Line, dan MACD Histogram) untuk mendeteksi kekuatan dorongan arah pergerakan harga.
+- **Chart 4: Arah Tren Pasar (IHSG)** — Grafik garis pergerakan indeks IHSG terhadap garis MA50 untuk menentukan status pasar terkini (Bullish/Bearish).
+- **Fitur interaktif**:
+  - *Tooltip hover interaktif*: Menampilkan data harga penutupan eksak dan indikator secara detail saat disorot.
+  - *Ruler Tool*: Pengukur rentang tanggal, persentase selisih harga, jumlah bar, dan volume perdagangan secara dinamis pada grafik tren.
+  - *Dropdown Filter Saham*: Memilih dan memuat visualisasi saham tertentu secara instan.
+  - *Timeframe Switcher*: Tombol interaktif untuk merubah periode pengelompokan data (Daily, Weekly, Monthly, Yearly).
+  - *Sinkronisasi Zoom & Pan*: Geser (drag-pan) dan perbesar (scroll-zoom) sumbu X yang tersinkronisasi otomatis antara grafik tren dan volume/MACD.
+- **Animasi**:
+  - *Chart.js Entrance Animation*: Visualisasi grafik muncul perlahan dengan transisi ease-out saat halaman selesai dimuat.
+  - *KPI Count-Up Number*: Angka counter pada 4 kartu KPI utama (Nilai IHSG, Status Pasar, Outperformer, Underperformer) terhitung naik secara dinamis dari 0 ke nilai target.
+  - *CSS Fade-in / Sliding Entrance*: Elemen kartu dashboard dan peta heatmap masuk dengan animasi transisi yang halus.
 
-- **OKX Inspired Dark Theme**: Desain profesional dengan tema gelap finansial minimalis, transisi halus, dan skema warna intuitif (Hijau untuk Bullish, Merah untuk Bearish).
-- **KPI Dashboard Dinamais**:
-  - Nilai IHSG saat ini dengan animasi *count up* angka.
-  - Status pasar (*Bullish* jika IHSG di atas MA50, *Bearish* jika di bawah MA50).
-  - *Top Outperformer* & *Top Underperformer* saham relatif terhadap IHSG dengan kalkulasi return otomatis.
-- **Visualisasi Chart.js**:
-  - **Chart 1 (Relative Performance)**: Grafik multiline perbandingan kinerja seluruh saham yang telah direbase ke nilai 100 untuk melihat saham mana yang mengungguli (*outperform*) atau tertinggal (*underperform*) dari IHSG.
-  - **Chart 2 (Trend Analysis)**: Menampilkan Harga Penutupan, MA20, dan MA50 untuk mendeteksi tren bullish/bearish serta sinyal perpotongan (*Golden Cross* / *Death Cross*).
-  - **Chart 3 (Momentum Analysis)**: Menampilkan Stochastic Oscillator (%K dan %D) dengan batas visual *Overbought* (80) dan *Oversold* (20) menggunakan garis referensi terputus-putus.
-- **Ringkasan Analisis Otomatis**: Menghasilkan kesimpulan tertulis otomatis (insight dinamis) yang berubah sesuai saham yang dipilih dari dropdown filter.
+## Sumber Data
 
----
+- Nama dataset: **Yahoo Finance Historical Stock Market Prices**
+- URL sumber: [https://finance.yahoo.com/](https://finance.yahoo.com/)
+- Script pengambilan data otomatis: [scripts/fetch_data.py](file:///c:/Semester/Semester%206/Visualisasi%20Data/TUBES%20DASHBOARD%20SAHAM%20INDO%20MAGNIFIENT%207/indonesia-market-dashboard/scripts/fetch_data.py) (mengunduh data real-time, menyelaraskan tanggal perdagangan, dan menghitung MA20/MA50 secara backend).
 
-## 2. Struktur Folder
+## Cara Jalankan di Lokal
 
-```
-indonesia-market-dashboard/
-├── index.html            # File HTML utama untuk tata letak dashboard
-├── style.css             # Tema warna OKX, layout Grid/Flexbox, dan responsivitas
-├── app.js                # Logika Chart.js, KPI count-up, dan auto-insights
-├── data/
-│   ├── prices.json       # Data harga saham & indikator teknikal historis 252 hari
-│   └── meta.json         # Metadata (pembaruan terakhir, return, status pasar, KPI)
-├── scripts/
-│   └── fetch_data.py     # Script Python untuk fetch data Yahoo Finance & hitung indikator
-├── requirements.txt      # Dependensi Python
-└── README.md             # Dokumentasi proyek
-```
+### Jalur A (Server Lokal dengan Python - Direkomendasikan):
+Karena beberapa browser memblokir pembacaan file JSON lokal (`data/prices.json`) secara langsung karena kebijakan keamanan CORS, gunakan server HTTP sederhana bawaan Python:
+1. Pastikan Python 3 sudah terinstal pada komputer Anda.
+2. Buka terminal/command prompt di dalam direktori project.
+3. Jalankan perintah berikut:
+   ```bash
+   python -m http.server 8000
+   ```
+4. Buka browser Anda dan akses: [http://localhost:8000](http://localhost:8000)
 
----
+### Jalur B (Static):
+Buka file `index.html` secara langsung di browser Anda (atau klik kanan -> *Open with Live Server* di VS Code).
 
-## 3. Cara Instalasi & Menjalankan Proyek
+### Langkah Pembaruan Data Historis (Opsional):
+Jika Anda ingin mendownload ulang data pasar terbaru dari Yahoo Finance:
+1. Instal dependensi python yang diperlukan:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Jalankan script fetch data:
+   ```bash
+   python scripts/fetch_data.py
+   ```
 
-### Langkah 1: Persiapan Lingkungan Python
-Pastikan Python 3 sudah terinstal pada sistem Anda. Masuk ke folder proyek dan instal dependensi Python:
+## Teknologi
 
-```bash
-pip install -r requirements.txt
-```
+- **Chart.js** (Visualisasi grafik utama & candlestick)
+- **Hammer.js & chartjs-plugin-zoom** (Kontrol interaksi geser dan perbesar sumbu X)
+- **Luxon & chartjs-adapter-luxon** (Adapter pengolahan format tanggal)
+- **yfinance, pandas, numpy** (Python library untuk scraping dan kalkulasi indikator)
+- **HTML5, CSS3 (CSS Grid & Flexbox), dan Vanilla JavaScript (ES6)**
+- **Vercel** (Platform deployment online static)
 
-### Langkah 2: Mengambil Data Pasar Terbaru
-Jalankan script Python untuk mengunduh data real-time dari Yahoo Finance dan menghitung seluruh indikator teknikal (MA20, MA50, Stochastic):
+## Anggota Kelompok
 
-```bash
-python scripts/fetch_data.py
-```
-*Catatan: Script ini akan secara otomatis membuat folder `data/` serta memperbarui file `prices.json` dan `meta.json`.*
-
-### Langkah 3: Menjalankan Server Lokal untuk Dashboard
-Karena browser membatasi pembacaan file JSON lokal melalui protokol `file://` (kebijakan CORS), Anda harus menjalankan server lokal untuk membuka dashboard.
-
-Jalankan server sederhana menggunakan modul bawaan Python:
-
-```bash
-python -m http.server 8000
-```
-
-Setelah server berjalan, buka browser dan akses URL:
-```text
-http://localhost:8000
-```
-
----
-
-## 4. Rumus dan Interpretasi Indikator Teknikal
-
-### A. Rata-rata Bergerak (Moving Average)
-- **MA20**: Rata-rata harga penutupan selama 20 hari perdagangan terakhir. Digunakan untuk mendeteksi tren jangka pendek.
-- **MA50**: Rata-rata harga penutupan selama 50 hari perdagangan terakhir. Digunakan untuk mendeteksi tren jangka menengah.
-  - **Golden Cross**: Terjadi saat harga penutupan atau MA jangka pendek memotong ke atas MA jangka panjang (indikator bullish).
-  - **Death Cross**: Terjadi saat harga penutupan atau MA jangka pendek memotong ke bawah MA jangka panjang (indikator bearish).
-
-### B. Stochastic Oscillator (14, 3, 3)
-Formula untuk mengukur momentum harga:
-- **Fast %K**:
-  $$\%K_{\text{fast}} = 100 \times \frac{\text{Close} - L_{14}}{H_{14} - L_{14}}$$
-  *Dimana $L_{14}$ adalah harga terendah dalam 14 hari terakhir dan $H_{14}$ adalah harga tertinggi dalam 14 hari terakhir.*
-- **Slow %K** (%K yang ditampilkan pada chart):
-  $$\%K = \text{Simple Moving Average } 3 \text{ Hari dari } \%K_{\text{fast}}$$
-- **Slow %D** (%D yang ditampilkan pada chart):
-  $$\%D = \text{Simple Moving Average } 3 \text{ Hari dari } \%K$$
-  
-**Interpretasi**:
-- **%K dan %D > 80**: Kondisi *Overbought* (Jenuh Beli). Menandakan harga rentan koreksi.
-- **%K dan %D < 20**: Kondisi *Oversold* (Jenuh Jual). Menandakan harga berpotensi memantul naik (*rebound*).
-
-### C. Relative Performance (Rebase ke 100)
-Seluruh harga penutupan saham disesuaikan menggunakan rumus:
-$$\text{Rebased Price}_t = 100 \times \frac{\text{Close}_t}{\text{Close}_{\text{day 1}}}$$
-Dengan rebase ini, semua grafik saham akan dimulai pada titik yang sama yaitu nilai 100 di hari ke-1, memungkinkan perbandingan langsung persentase kenaikan/penurunan harga antar saham dengan adil.
-
----
-
-## 5. Responsivitas Layar
-Desain antarmuka telah diuji agar responsif terhadap berbagai ukuran layar:
-- **Desktop (>= 1200px)**: Grid KPI 4 kolom, Chart Utama penuh, Chart detail bersisian (2 kolom).
-- **Tablet (768px - 1199px)**: Grid KPI 2 kolom, Chart detail ditumpuk secara vertikal (1 kolom).
-- **Mobile (< 768px)**: Grid KPI 1 kolom, penyesuaian ukuran teks, select filter melebar penuh, dan padding lebih kecil.
+- Mentheng Paskahbuana T (103012300128)
+- Nama Anggota 2 (NIM)
+- Nama Anggota 3 (NIM)
+- Nama Anggota 4 (NIM)
+- Nama Anggota 5 (NIM)

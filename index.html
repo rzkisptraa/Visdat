@@ -127,7 +127,8 @@
                     <div class="card-header">
                         <div>
                             <h2>Heatmap Performa Saham</h2>
-                            <p class="card-subtitle">Perubahan imbal hasil harga saham dari awal hingga akhir periode terpilih</p>
+                            <p class="card-subtitle">Perubahan imbal hasil harga saham dari awal hingga akhir periode
+                                terpilih</p>
                         </div>
                         <div class="filter-group">
                             <span class="filter-label">Timeframe:</span>
@@ -154,8 +155,8 @@
                 <div class="card-header">
                     <div>
                         <h2>Performa Relatif Saham terhadap IHSG</h2>
-                        <p class="card-subtitle">Perbandingan imbal hasil kumulatif saham terhadap IHSG (Skala Persentase, Dimulai dari 0%)</p>
-                        <p class="interaction-instruction">Klik & Seret untuk Geser | Scroll untuk Zoom | Klik 2x untuk Reset</p>
+                        <p class="card-subtitle">Perbandingan imbal hasil kumulatif saham terhadap IHSG (Skala
+                            Persentase, Dimulai dari 10 tahun lalu)</p>
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">Timeframe:</span>
@@ -164,6 +165,18 @@
                             <button class="tf-btn" data-tf="weekly">Weekly</button>
                             <button class="tf-btn" data-tf="monthly">Monthly</button>
                             <button class="tf-btn" data-tf="yearly">Yearly</button>
+                        </div>
+                        <div class="chart-actions">
+                            <button class="export-btn export-png" data-chart="relativePerformanceChart"
+                                title="Unduh Gambar (PNG)">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                                    </path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -188,6 +201,9 @@
                             <option value="TLKM">TLKM (PT Telkom Indonesia Tbk)</option>
                             <option value="BREN">BREN (PT Barito Renewables Energy Tbk)</option>
                             <option value="AMMN">AMMN (PT Amman Mineral Internasional Tbk)</option>
+                            <option value="ASII">ASII (PT Astra International Tbk)</option>
+                            <option value="ANTM">ANTM (PT Aneka Tambang Tbk)</option>
+                            <option value="UNVR">UNVR (PT Unilever Indonesia Tbk)</option>
                         </select>
                     </div>
                 </div>
@@ -209,20 +225,36 @@
                     <div class="card-header">
                         <div>
                             <h2>Analisis Tren Harga Saham <span class="selected-stock-ticker"></span></h2>
-                            <p class="card-subtitle">Harga Penutupan Historis, Rata-rata Bergerak 20 Hari (MA20), dan 50 Hari (MA50)</p>
-                            <p class="interaction-instruction">Klik & Seret untuk Geser | Scroll untuk Zoom | Klik 2x untuk Reset</p>
+                            <p class="card-subtitle">Harga Penutupan Historis, Rata-rata Bergerak 20 Hari (MA20), dan 50
+                                Hari (MA50)</p>
                         </div>
-                        <button id="ruler-tool-btn" class="ruler-btn"
-                            title="Pengukur Rentang Tanggal & Persentase Harga (Ruler)">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="5" y1="19" x2="19" y2="5"></line>
-                                <line x1="5" y1="14" x2="10" y2="19"></line>
-                                <line x1="9" y1="10" x2="14" y2="15"></line>
-                                <line x1="14" y1="5" x2="19" y2="10"></line>
-                            </svg>
-                            <span>Ruler</span>
-                        </button>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
+                            <!-- Ruler Button -->
+                            <button id="ruler-tool-btn" class="ruler-btn"
+                                title="Pengukur Rentang Tanggal & Persentase Harga (Ruler)">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="19" x2="19" y2="5"></line>
+                                    <line x1="5" y1="14" x2="10" y2="19"></line>
+                                    <line x1="9" y1="10" x2="14" y2="15"></line>
+                                    <line x1="14" y1="5" x2="19" y2="10"></line>
+                                </svg>
+                                <span>Ruler</span>
+                            </button>
+                            <!-- Export Buttons -->
+                            <div class="chart-actions">
+                                <button class="export-btn export-png" data-chart="trendChart"
+                                    title="Unduh Gambar (PNG)">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                                        </path>
+                                        <circle cx="12" cy="13" r="4"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="trendChart"></canvas>
@@ -234,8 +266,19 @@
                     <div class="card-header">
                         <div>
                             <h2>Analisis Momentum MACD Saham <span class="selected-stock-ticker"></span></h2>
-                            <p class="card-subtitle">Moving Average Convergence Divergence (MACD) digunakan untuk mengidentifikasi kekuatan dan arah momentum tren harga saham.</p>
-                            <p class="interaction-instruction">Klik & Seret untuk Geser | Scroll untuk Zoom | Klik 2x untuk Reset</p>
+                            <p class="card-subtitle">Moving Average Convergence Divergence (MACD) digunakan untuk
+                                mengidentifikasi kekuatan dan arah momentum tren harga saham.</p>
+                        </div>
+                        <div class="chart-actions">
+                            <button class="export-btn export-png" data-chart="volumeChart" title="Unduh Gambar (PNG)">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                                    </path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="chart-container">
@@ -258,7 +301,8 @@
                                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 01-2 2h0a2 2 0 01-2-2v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
                             </path>
                         </svg>
-                        <h2>Ringkasan Analisis <span class="selected-stock-ticker-full"></span></h2>
+                        <h2>Ringkasan Analisis <span class="selected-stock-ticker"></span><span
+                                class="selected-stock-ticker-full"></span></h2>
                     </div>
                     <div class="stock-badge-container">
                         <span id="insights-timeframe-note" class="badge badge-info">DAILY</span>
@@ -275,7 +319,9 @@
         <!-- Footer -->
         <footer class="app-footer">
             <div class="footer-left">
-                <p>Indonesia Market Stock Dashboard.</p>
+                <p>Indonesia Market Stock Dashboard. Sumber Data: <a href="https://finance.yahoo.com" target="_blank"
+                        style="color: var(--accent-color); text-decoration: none; font-weight: 500;">Yahoo Finance
+                        API</a></p>
             </div>
         </footer>
     </div>

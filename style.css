@@ -313,6 +313,13 @@ body {
     width: 100%;
 }
 
+/* Crisp Canvas Rendering Fix for High-DPI and standard screens */
+canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
 /* Main Performance Chart (scaled to 675px - 1.5x height for balanced viewing) */
 .main-chart-section {
     width: 100%;
@@ -788,6 +795,7 @@ body {
 .overview-heatmap-card {
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Enforce grid columns layout and allow shrinking */
 }
 
 .overview-chart-container {
@@ -892,6 +900,76 @@ body {
 
 .heatmap-block-anim {
     animation: heatmapPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Indicator Toggles & Action Buttons Styling */
+.indicator-toggles .toggle-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    user-select: none;
+}
+.indicator-toggles .toggle-btn:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+.indicator-toggles .toggle-btn.active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.export-btn {
+    background-color: #111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+.export-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.03);
+    transform: scale(1.05);
+}
+
+/* Selected Ticker Blue Badge Styling */
+.selected-stock-ticker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #3B82F6; /* Premium Vibrant Blue */
+    background-color: rgba(59, 130, 246, 0.08); /* Transparent blue tint */
+    border: 1px solid rgba(59, 130, 246, 0.4); /* Solid blue border */
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 0.75em;
+    font-weight: 700;
+    margin-left: 8px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    line-height: 1.2;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
 }
 
 

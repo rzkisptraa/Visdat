@@ -7,11 +7,22 @@ let trendChart = null;
 let volumeChart = null;
 let ihsgTrendChart = null; // simple IHSG MA50 chart
 let activeScalingChart = null; // track the chart being dragged/scaled on x-axis
+let currentResampledData = null; // cached resampled dataset for the current ticker and timeframe
 
 // Timeframe state
 let currentTimeframe = 'daily'; // controls trendChart & volumeChart
 let relativeTimeframe = 'daily'; // controls relativeChart
 let heatmapTimeframe = 'daily'; // controls simple IHSG & stock heatmap
+
+// Debouncing for insights updates to prevent layout thrashing
+let _insightsDebounceTimeout = null;
+function debouncedUpdateInsights() {
+    if (_insightsDebounceTimeout) clearTimeout(_insightsDebounceTimeout);
+    _insightsDebounceTimeout = setTimeout(() => {
+        _insightsDebounceTimeout = null;
+        updateInsightsFromChart();
+    }, 100);
+}
 
 // Sync lock to prevent recursive updates between linked charts
 let isSyncing = false;
@@ -52,6 +63,9 @@ const TICKER_NAMES = {
     "TLKM": "PT Telkom Indonesia Tbk",
     "BREN": "PT Barito Renewables Energy Tbk",
     "AMMN": "PT Amman Mineral Internasional Tbk",
+    "ASII": "PT Astra International Tbk",
+    "ANTM": "PT Aneka Tambang Tbk",
+    "UNVR": "PT Unilever Indonesia Tbk",
     "IHSG": "Indeks Harga Saham Gabungan (IHSG)"
 };
 
@@ -63,7 +77,10 @@ const ASSET_COLORS = {
     "BMRI": "#F97316", // Orange
     "TLKM": "#EF4444", // Red
     "BREN": "#10B981", // Green
-    "AMMN": "#06B6D4"  // Cyan
+    "AMMN": "#06B6D4", // Cyan
+    "ASII": "#8B5CF6", // Purple
+    "ANTM": "#EC4899", // Pink
+    "UNVR": "#84CC16"  // Lime
 };
 
 // Document Ready
@@ -73,6 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initDashboard() {
     try {
+        // Force high resolution rendering for canvases to prevent blurry text/lines
+        if (typeof Chart !== 'undefined' && Chart.defaults) {
+            Chart.defaults.devicePixelRatio = Math.max(window.devicePixelRatio || 1, 2);
+        }
+
         // Fetch JSON files
         const [pricesRes, metaRes] = await Promise.all([
             fetch('data/prices.json?t=' + Date.now()),
@@ -150,6 +172,9 @@ async function initDashboard() {
         
         // Setup initial view
         updateAllViews();
+        
+        // Setup interactive chart controls & export utilities
+        setupChartActions();
         
         // Setup ruler measurement tool button and event handlers
         setupRulerToggle();
@@ -639,10 +664,39 @@ function getVisibleStockData(chart, resampledData) {
     if (isTimeScale) {
         const xMin = chart.scales.x.min;
         const xMax = chart.scales.x.max;
-        return resampledData.filter(item => {
-            const t = new Date(item.date).getTime();
-            return t >= xMin && t <= xMax;
-        });
+        
+        let start = 0;
+        let end = resampledData.length - 1;
+        
+        // Binary search for first index >= xMin
+        let low = 0, high = resampledData.length - 1;
+        while (low <= high) {
+            let mid = (low + high) >> 1;
+            let itemDate = resampledData[mid] ? resampledData[mid].date : null;
+            let val = itemDate ? new Date(itemDate).getTime() : 0;
+            if (val >= xMin) {
+                start = mid;
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        
+        // Binary search for last index <= xMax
+        low = start;
+        high = resampledData.length - 1;
+        while (low <= high) {
+            let mid = (low + high) >> 1;
+            let itemDate = resampledData[mid] ? resampledData[mid].date : null;
+            let val = itemDate ? new Date(itemDate).getTime() : 0;
+            if (val <= xMax) {
+                end = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return resampledData.slice(start, end + 1);
     } else {
         const minIndex = Math.max(0, Math.floor(chart.scales.x.min));
         const maxIndex = Math.min(resampledData.length - 1, Math.ceil(chart.scales.x.max));
@@ -653,14 +707,9 @@ function getVisibleStockData(chart, resampledData) {
 // Update insights box dynamically based on the current chart view range
 function updateInsightsFromChart() {
     const ticker = document.getElementById('stock-select').value;
-    const stockData = pricesData[ticker];
-    if (!stockData) return;
-    
-    // Filter out pre-IPO/inactive days so insights are correct
-    const activeStockData = stockData.filter(item => item.active !== false);
-    const resampled = resampleDataset(activeStockData, currentTimeframe);
-    const visibleData = getVisibleStockData(trendChart, resampled);
-    generateInsights(ticker, visibleData, resampled);
+    if (!currentResampledData) return;
+    const visibleData = getVisibleStockData(trendChart, currentResampledData);
+    generateInsights(ticker, visibleData, currentResampledData);
 }
 
 // Handle double click reset interaction
@@ -1152,10 +1201,10 @@ function updateSelectedStockView(ticker) {
 
     // Filter inactive/pre-IPO rows
     var activeStockData = stockData.filter(function(item) { return item.active !== false; });
-    var resampled = resampleDataset(activeStockData, currentTimeframe);
+    currentResampledData = resampleDataset(activeStockData, currentTimeframe);
 
     // Compute initial x window BEFORE building charts so they render correctly on first frame
-    var N = resampled.length;
+    var N = currentResampledData.length;
     var defaultZoom = getDefaultZoom(N, currentTimeframe);
     var minIndex = Math.max(0, N - defaultZoom);
     var maxIndex = N - 1;
@@ -1165,15 +1214,15 @@ function updateSelectedStockView(ticker) {
     var startMin = null;
     var startMax = null;
     if (N > 0) {
-        initialMin = new Date(resampled[minIndex].date).getTime();
-        initialMax = new Date(resampled[maxIndex].date).getTime();
+        initialMin = new Date(currentResampledData[minIndex].date).getTime();
+        initialMax = new Date(currentResampledData[maxIndex].date).getTime();
         var windowSize = initialMax - initialMin;
         startMin = initialMax;
         startMax = initialMax + windowSize;
     }
 
-    updateTrendChart(resampled, ticker, startMin, startMax);
-    updateMACDChart(resampled, startMin, startMax);
+    updateTrendChart(currentResampledData, ticker, startMin, startMax);
+    updateMACDChart(currentResampledData, startMin, startMax);
 
     // autoScaleY after charts are built
     if (trendChart)  { autoScaleY(trendChart);  trendChart.update('none'); }
@@ -1182,8 +1231,8 @@ function updateSelectedStockView(ticker) {
     if (N >= 2) {
         animateDetailChartsTimeframe(initialMin, initialMax, trendChart, volumeChart);
     } else {
-        var visibleData = getVisibleStockData(trendChart, resampled);
-        generateInsights(ticker, visibleData, resampled);
+        var visibleData = getVisibleStockData(trendChart, currentResampledData);
+        generateInsights(ticker, visibleData, currentResampledData);
     }
 }
 
@@ -1240,12 +1289,12 @@ function updateTrendChart(resampled, ticker, initialMin, initialMax) {
                     pan: { enabled: true, mode: 'x', onPan: function(ref) {
                         var c = ref.chart; syncXAxis(c, volumeChart); autoScaleY(c);
                         if (volumeChart) { autoScaleY(volumeChart); volumeChart.update('none'); }
-                        c.update('none'); updateInsightsFromChart();
+                        c.update('none'); debouncedUpdateInsights();
                     }},
                     zoom: { wheel: { enabled: true, speed: 0.1 }, pinch: { enabled: true }, mode: 'x', onZoom: function(ref) {
                         var c = ref.chart; syncXAxis(c, volumeChart); autoScaleY(c);
                         if (volumeChart) { autoScaleY(volumeChart); volumeChart.update('none'); }
-                        c.update('none'); updateInsightsFromChart();
+                        c.update('none'); debouncedUpdateInsights();
                     }}
                 },
                 legend: { display: true, labels: { color: '#9CA3AF', font: { family: 'Inter', size: 10 },
@@ -1282,9 +1331,19 @@ function updateTrendChart(resampled, ticker, initialMin, initialMax) {
                     offset: true,
                     min: initialMin != null ? initialMin : undefined,
                     max: initialMax != null ? initialMax : undefined,
-                    time: { unit: timeUnit, tooltipFormat: 'dd MMM yyyy' },
+                    time: {
+                        unit: timeUnit,
+                        tooltipFormat: 'dd MMM yyyy',
+                        displayFormats: {
+                            day: 'd MMM',
+                            week: 'd MMM',
+                            month: 'MMM yy',
+                            quarter: 'MMM yy',
+                            year: 'yyyy'
+                        }
+                    },
                     adapters: { date: { locale: 'id' } },
-                    grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false, offset: false },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)', drawTicks: false, offset: false },
                     ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 11, weight: '500' }, maxTicksLimit: 8, align: 'center', padding: 10 }
                 },
                 y: {
@@ -1303,6 +1362,13 @@ function updateTrendChart(resampled, ticker, initialMin, initialMax) {
             }
         }
     });
+
+    // Honor current MA indicator toggles on chart rebuild
+    const ma20Visible = document.getElementById('ma20-checkbox') ? document.getElementById('ma20-checkbox').checked : true;
+    const ma50Visible = document.getElementById('ma50-checkbox') ? document.getElementById('ma50-checkbox').checked : true;
+    trendChart.setDatasetVisibility(1, ma20Visible);
+    trendChart.setDatasetVisibility(2, ma50Visible);
+    trendChart.update('none');
 
     setupXAxisDrag(trendChart);
 }
@@ -1396,7 +1462,7 @@ function updateMACDChart(resampled, initialMin, initialMax) {
                                 trendChart.update('none');
                             }
                             chart.update('none');
-                            updateInsightsFromChart();
+                            debouncedUpdateInsights();
                         }
                     },
                     zoom: {
@@ -1411,7 +1477,7 @@ function updateMACDChart(resampled, initialMin, initialMax) {
                                 trendChart.update('none');
                             }
                             chart.update('none');
-                            updateInsightsFromChart();
+                            debouncedUpdateInsights();
                         }
                     }
                 },
@@ -1453,7 +1519,17 @@ function updateMACDChart(resampled, initialMin, initialMax) {
                     type: 'timeseries',
                     min: initialMin != null ? initialMin : undefined,
                     max: initialMax != null ? initialMax : undefined,
-                    time: { unit: getTimeUnit(), tooltipFormat: 'dd MMM yyyy' },
+                    time: {
+                        unit: getTimeUnit(),
+                        tooltipFormat: 'dd MMM yyyy',
+                        displayFormats: {
+                            day: 'd MMM',
+                            week: 'd MMM',
+                            month: 'MMM yy',
+                            quarter: 'MMM yy',
+                            year: 'yyyy'
+                        }
+                    },
                     adapters: { date: { locale: 'id' } },
                     grid: { color: 'rgba(255, 255, 255, 0.05)', drawTicks: false },
                     ticks: {
@@ -2346,8 +2422,20 @@ function setupCrosshairEvents() {
         crosshairState.yValVolume = null;
         crosshairState.activeChartId = null;
         
-        if (trendChart) trendChart.update('none');
-        if (volumeChart) volumeChart.update('none');
+        if (trendChart) {
+            try {
+                if (trendChart.tooltip) trendChart.tooltip.setActiveElements([], {x: 0, y: 0});
+                trendChart.setActiveElements([]);
+            } catch (e) {}
+            trendChart.update('none');
+        }
+        if (volumeChart) {
+            try {
+                if (volumeChart.tooltip) volumeChart.tooltip.setActiveElements([], {x: 0, y: 0});
+                volumeChart.setActiveElements([]);
+            } catch (e) {}
+            volumeChart.update('none');
+        }
     };
     
     trendCanvas.addEventListener('mousemove', (e) => {
@@ -2482,13 +2570,23 @@ function updateIHSGTrendChart() {
             scales: {
                 x: {
                     type: 'timeseries',
-                    time: { unit: getTimeUnit(), tooltipFormat: 'dd MMM yyyy' },
+                    time: {
+                        unit: getTimeUnit(),
+                        tooltipFormat: 'dd MMM yyyy',
+                        displayFormats: {
+                            day: 'd MMM',
+                            week: 'd MMM',
+                            month: 'MMM yy',
+                            quarter: 'MMM yy',
+                            year: 'yyyy'
+                        }
+                    },
                     adapters: { date: { locale: 'id' } },
                     grid: { color: 'rgba(255, 255, 255, 0.02)', drawTicks: false },
                     ticks: {
                         color: '#9CA3AF',
                         font: { family: 'Inter', size: 10, weight: '500' },
-                        maxTicksLimit: 4,
+                        maxTicksLimit: 3,
                         align: 'inner',
                         padding: 6
                     }
@@ -2515,7 +2613,7 @@ function updateStockHeatmap() {
     if (!container) return;
     container.innerHTML = '';
 
-    const tickers = ["BBCA", "BBRI", "BMRI", "TLKM", "BREN", "AMMN"];
+    const tickers = ["BBCA", "BBRI", "BMRI", "TLKM", "BREN", "AMMN", "ASII", "ANTM", "UNVR"];
 
     // Step 1: Collect return percentages
     const returns = {};
@@ -2535,15 +2633,34 @@ function updateStockHeatmap() {
         returns[ticker] = returnPct;
     });
 
-    // Step 2: Define the 4 column groups
-    // 'solo' = one stock spanning both rows; 'pair' = two stocks stacked
+    // Step 2: Define the 6 column groups dynamically
+    // Sort all 9 tickers based on absolute return value (ascending)
+    const sortedTickers = tickers.slice().sort(function(a, b) {
+        return Math.abs(returns[a]) - Math.abs(returns[b]);
+    });
+
     const MIN_WEIGHT = 0.12;
+    // We want 6 columns. 3 columns will be pairs (2 stocks each) and 3 will be solos (1 stock each).
+    // To place the smallest changes on the left and the largest on the right:
+    // Columns 1, 2, 3 (left side) will be pairs of the first 6 sorted tickers (smallest absolute returns).
+    // Columns 4, 5, 6 (right side) will be solos of the last 3 sorted tickers (largest absolute returns).
     const groups = [
-        { id: 'BBCA',      type: 'solo', stocks: ['BBCA'],        weight: Math.max(MIN_WEIGHT, Math.abs(returns['BBCA'])) },
-        { id: 'BBRI_BMRI', type: 'pair', stocks: ['BBRI', 'BMRI'], weight: Math.max(MIN_WEIGHT, Math.max(Math.abs(returns['BBRI']), Math.abs(returns['BMRI']))) },
-        { id: 'TLKM',      type: 'solo', stocks: ['TLKM'],        weight: Math.max(MIN_WEIGHT, Math.abs(returns['TLKM'])) },
-        { id: 'BREN_AMMN', type: 'pair', stocks: ['BREN', 'AMMN'], weight: Math.max(MIN_WEIGHT, Math.max(Math.abs(returns['BREN']), Math.abs(returns['AMMN']))) }
+        { id: sortedTickers[0] + '_' + sortedTickers[1], type: 'pair', stocks: [sortedTickers[0], sortedTickers[1]] },
+        { id: sortedTickers[2] + '_' + sortedTickers[3], type: 'pair', stocks: [sortedTickers[2], sortedTickers[3]] },
+        { id: sortedTickers[4] + '_' + sortedTickers[5], type: 'pair', stocks: [sortedTickers[4], sortedTickers[5]] },
+        { id: sortedTickers[6],                           type: 'solo', stocks: [sortedTickers[6]] },
+        { id: sortedTickers[7],                           type: 'solo', stocks: [sortedTickers[7]] },
+        { id: sortedTickers[8],                           type: 'solo', stocks: [sortedTickers[8]] }
     ];
+
+    // Compute weights for each group
+    groups.forEach(function(g) {
+        if (g.type === 'solo') {
+            g.weight = Math.max(MIN_WEIGHT, Math.abs(returns[g.stocks[0]]));
+        } else {
+            g.weight = Math.max(MIN_WEIGHT, Math.max(Math.abs(returns[g.stocks[0]]), Math.abs(returns[g.stocks[1]])));
+        }
+    });
 
     // Step 3: Sort ascending by weight (smallest left, largest right)
     groups.sort(function(a, b) { return a.weight - b.weight; });
@@ -2600,6 +2717,9 @@ function updateStockHeatmap() {
         block.className = 'heatmap-block heatmap-block-anim';
         block.style.gridArea = gridAreas[ticker];
         block.style.backgroundColor = color;
+        
+        // Ensure perfect sorting order in mobile/tablet grids where grid-area is overridden
+        block.style.order = sortedTickers.indexOf(ticker);
         
         // Stagger the CSS pop-in animation delay
         block.style.animationDelay = (index * 60) + 'ms';
@@ -2699,12 +2819,12 @@ window.addEventListener('mousemove', (e) => {
                 syncXAxis(trendChart, volumeChart);
                 autoScaleY(volumeChart);
                 volumeChart.update('none');
-                updateInsightsFromChart();
+                debouncedUpdateInsights();
             } else if (chart === volumeChart && trendChart) {
                 syncXAxis(volumeChart, trendChart);
                 autoScaleY(trendChart);
                 trendChart.update('none');
-                updateInsightsFromChart();
+                debouncedUpdateInsights();
             }
         });
     }
@@ -2746,4 +2866,138 @@ function setupXAxisDrag(chart) {
             e.preventDefault();
         }
     });
+
+    // Explicitly hide tooltip and active hover elements when mouse leaves canvas
+    canvas.addEventListener('mouseleave', () => {
+        try {
+            if (chart.tooltip) {
+                chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+            }
+            chart.setActiveElements([]);
+            chart.update('none');
+        } catch (e) {}
+    });
+}
+
+// Interactive Chart Controls & Export Utilities (PNG / CSV)
+function setupChartActions() {
+    // 1. Export PNG Event Listeners
+    document.querySelectorAll('.export-png').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const btnEl = e.currentTarget;
+            const chartId = btnEl.dataset.chart;
+            const activeStock = document.getElementById('stock-select').value;
+            const filename = chartId === 'relativePerformanceChart' ? 'relative_performance' : `${activeStock}_${chartId}`;
+            exportChartToPNG(chartId, filename);
+        });
+    });
+}
+
+// Capture canvas rendering onto a temporary canvas filled with card background color to ensure readability
+function exportChartToPNG(chartId, filename) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    
+    // Fill solid card background matching #0B0F14
+    ctx.fillStyle = '#0B0F14';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw chart canvas content on top
+    ctx.drawImage(canvas, 0, 0);
+    
+    const link = document.createElement('a');
+    link.download = filename + '.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Convert active dataset series into CSV strings for tabular downloads
+function exportChartToCSV(chart, filename) {
+    if (!chart || !chart.data || !chart.data.datasets) return;
+    
+    let csvContent = "\uFEFF"; // Add UTF-8 Byte Order Mark (BOM) to force proper Excel rendering
+    
+    if (chart === relativeChart) {
+        const labels = chart.data.labels || [];
+        const datasets = chart.data.datasets;
+        
+        const headers = ["Date", ...datasets.map(ds => ds.label)];
+        csvContent += headers.join(",") + "\n";
+        
+        for (let i = 0; i < labels.length; i++) {
+            const dateStr = labels[i];
+            const row = [dateStr];
+            datasets.forEach(ds => {
+                const val = ds.data[i];
+                row.push(val !== null && val !== undefined ? val.toFixed(4) : "");
+            });
+            csvContent += row.join(",") + "\n";
+        }
+    } 
+    else if (chart === trendChart) {
+        const ohlcDataset = chart.data.datasets[0];
+        const ma20Dataset = chart.data.datasets[1];
+        const ma50Dataset = chart.data.datasets[2];
+        
+        const data = ohlcDataset ? ohlcDataset.data : [];
+        
+        csvContent += "Date,Open,High,Low,Close,MA20,MA50\n";
+        
+        data.forEach((item, idx) => {
+            const dateStr = new Date(item.x).toISOString().split('T')[0];
+            const ma20 = ma20Dataset && ma20Dataset.data[idx] ? ma20Dataset.data[idx].y : "";
+            const ma50 = ma50Dataset && ma50Dataset.data[idx] ? ma50Dataset.data[idx].y : "";
+            
+            const row = [
+                dateStr,
+                item.o.toFixed(2),
+                item.h.toFixed(2),
+                item.l.toFixed(2),
+                item.c.toFixed(2),
+                ma20 !== "" && ma20 !== null ? ma20.toFixed(2) : "",
+                ma50 !== "" && ma50 !== null ? ma50.toFixed(2) : ""
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+    }
+    else if (chart === volumeChart) {
+        const macdDataset = chart.data.datasets[0];
+        const signalDataset = chart.data.datasets[1];
+        const histDataset = chart.data.datasets[2];
+        
+        const data = macdDataset ? macdDataset.data : [];
+        
+        csvContent += "Date,MACD_Line,Signal_Line,Histogram\n";
+        
+        data.forEach((item, idx) => {
+            const dateStr = new Date(item.x).toISOString().split('T')[0];
+            const macd = item.y;
+            const signal = signalDataset && signalDataset.data[idx] ? signalDataset.data[idx].y : "";
+            const hist = histDataset && histDataset.data[idx] ? histDataset.data[idx].y : "";
+            
+            const row = [
+                dateStr,
+                macd !== null && macd !== undefined ? macd.toFixed(4) : "",
+                signal !== "" && signal !== null && signal !== undefined ? signal.toFixed(4) : "",
+                hist !== "" && hist !== null && hist !== undefined ? hist.toFixed(4) : ""
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }

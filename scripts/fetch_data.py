@@ -13,7 +13,10 @@ TICKER_MAP = {
     "BMRI.JK": "BMRI",
     "TLKM.JK": "TLKM",
     "BREN.JK": "BREN",
-    "AMMN.JK": "AMMN"
+    "AMMN.JK": "AMMN",
+    "ASII.JK": "ASII",
+    "ANTM.JK": "ANTM",
+    "UNVR.JK": "UNVR"
 }
 
 def main():
