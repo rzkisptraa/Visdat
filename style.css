@@ -313,13 +313,13 @@ body {
     width: 100%;
 }
 
-/* Main Performance Chart (doubled to 900px for clearer viewing) */
+/* Main Performance Chart (scaled to 675px - 1.5x height for balanced viewing) */
 .main-chart-section {
     width: 100%;
 }
 
 .main-chart-section .chart-container {
-    height: 900px;
+    height: 675px;
 }
 
 /* Filter Section */
