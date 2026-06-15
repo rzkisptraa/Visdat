@@ -347,16 +347,15 @@ function setupKPIs() {
         triggerCountup(statusVal, STAGGER[1]);
     }
 
-    // Calculate weekly returns for all stocks (excluding IHSG) based on the latest week's close-to-close return
+    // Calculate weekly returns for all stocks (excluding IHSG) based on the latest week's open-to-close return (following TradingView weekly candle logic)
     const stockReturns = {};
     Object.keys(pricesData).forEach(ticker => {
         if (ticker === 'IHSG') return;
         const weeklyData = resampleDataset(pricesData[ticker], 'weekly');
         if (weeklyData && weeklyData.length > 0) {
             const latestItem = weeklyData[weeklyData.length - 1];
-            const prevItem = weeklyData[weeklyData.length - 2] || latestItem;
-            if (prevItem && prevItem.close > 0) {
-                stockReturns[ticker] = ((latestItem.close - prevItem.close) / prevItem.close) * 100;
+            if (latestItem && latestItem.open > 0) {
+                stockReturns[ticker] = ((latestItem.close - latestItem.open) / latestItem.open) * 100;
             } else {
                 stockReturns[ticker] = 0;
             }
@@ -2952,9 +2951,17 @@ function updateStockHeatmap() {
             const latestItem = resampled[resampled.length - 1];
             const prevItem = resampled[resampled.length - 2] || latestItem;
 
-            // Pembaruan formula per timeframe secara terpisah (Close-to-Close)
-            if (prevItem && prevItem.close !== 0) {
-                returnPct = ((latestItem.close - prevItem.close) / prevItem.close) * 100;
+            // Pembaruan formula per timeframe secara terpisah (Mengikuti Logic TradingView)
+            if (heatmapTimeframe === 'daily') {
+                // Harian: Close-to-Close (dibandingkan dengan Close kemarin)
+                if (prevItem && prevItem.close !== 0) {
+                    returnPct = ((latestItem.close - prevItem.close) / prevItem.close) * 100;
+                }
+            } else {
+                // Mingguan, Bulanan, Tahunan: Open-to-Close dari candle periode berjalan
+                if (latestItem && latestItem.open !== 0) {
+                    returnPct = ((latestItem.close - latestItem.open) / latestItem.open) * 100;
+                }
             }
         }
         returns[ticker] = returnPct;
