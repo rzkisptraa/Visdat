@@ -1115,23 +1115,10 @@ function updateRelativeChart() {
     let labels = resampledIHSG.map(item => item.date);
     if (startYear !== 'all') {
         const yearInt = parseInt(startYear, 10);
-        
-        // Find the last date of the previous year to act as the 0% anchor point
-        const previousYear = yearInt - 1;
-        const previousYearDates = resampledIHSG
-            .map(item => item.date)
-            .filter(dateStr => new Date(dateStr).getFullYear() === previousYear);
-        const anchorDate = previousYearDates.length > 0 ? previousYearDates[previousYearDates.length - 1] : null;
-
         labels = labels.filter(dateStr => {
             const d = new Date(dateStr);
             return d.getFullYear() >= yearInt;
         });
-
-        // Add the anchor date at the beginning of the labels array
-        if (anchorDate) {
-            labels.unshift(anchorDate);
-        }
     }
 
     const datasets = Object.keys(pricesData).map(ticker => {
