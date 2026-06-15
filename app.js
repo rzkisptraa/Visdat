@@ -2700,6 +2700,14 @@ function updateIHSGTrendChart() {
         ihsgTrendChart = null;
     }
 
+    // Find minimum value to use as the bottom baseline for the animation
+    const allValues = [...closeData, ...ma50Data].filter(val => val !== null && val !== undefined);
+    const minVal = allValues.length > 0 ? Math.min(...allValues) : 0;
+
+    // First, render the chart with flat data at the minimum value
+    const flatCloseData = closeData.map(() => minVal);
+    const flatMa50Data = ma50Data.map(val => val === null ? null : minVal);
+
     ihsgTrendChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -2707,7 +2715,7 @@ function updateIHSGTrendChart() {
             datasets: [
                 {
                     label: 'IHSG',
-                    data: closeData,
+                    data: flatCloseData,
                     borderColor: '#FFFFFF',
                     borderWidth: 1.5,
                     pointRadius: 0,
@@ -2716,7 +2724,7 @@ function updateIHSGTrendChart() {
                 },
                 {
                     label: 'MA50',
-                    data: ma50Data,
+                    data: flatMa50Data,
                     borderColor: '#3B82F6',
                     borderWidth: 1.5,
                     pointRadius: 0,
@@ -2805,7 +2813,40 @@ function updateIHSGTrendChart() {
         }
     });
 
+    // Assign full datasets to calculate target Y scale ranges
+    ihsgTrendChart.data.datasets[0].data = closeData;
+    ihsgTrendChart.data.datasets[1].data = ma50Data;
+    autoScaleY(ihsgTrendChart);
+
+    // Revert to flat data for the initial frame to draw the flat state instantly
+    ihsgTrendChart.data.datasets[0].data = flatCloseData;
+    ihsgTrendChart.data.datasets[1].data = flatMa50Data;
+    ihsgTrendChart.options.animation = false;
+    ihsgTrendChart.update('none');
+
+    // Setup drag logic on the initial instance
     setupXAxisDrag(ihsgTrendChart);
+
+    // Animate lines rising up to target values smoothly
+    setTimeout(() => {
+        if (!ihsgTrendChart) return;
+
+        ihsgTrendChart.options.animation = {
+            duration: 1200,
+            easing: 'easeOutCubic'
+        };
+
+        ihsgTrendChart.data.datasets[0].data = closeData;
+        ihsgTrendChart.data.datasets[1].data = ma50Data;
+        ihsgTrendChart.update();
+
+        // Reset animation duration back to false after completion to keep drag scaling crisp
+        setTimeout(() => {
+            if (ihsgTrendChart && ihsgTrendChart.options) {
+                ihsgTrendChart.options.animation = false;
+            }
+        }, 1250);
+    }, 190);
 }
 
 // Render stock heatmap grid — columns sorted ascending by |returnPct| (smallest left -> largest right)
