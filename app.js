@@ -889,6 +889,40 @@ function renderRelativeChart() {
                         font: { family: 'Inter', size: 11 },
                         boxWidth: 12,
                         padding: 15
+                    },
+                    onClick: function(e, legendItem, legend) {
+                        const index = legendItem.datasetIndex;
+                        const ci = legend.chart;
+                        const canvas = ci.canvas;
+                        const wrapper = canvas ? canvas.closest('.chart-container') : null;
+
+                        if (wrapper) {
+                            wrapper.classList.remove('chart-tf-enter');
+                            wrapper.classList.add('chart-tf-exit');
+                        }
+
+                        setTimeout(() => {
+                            if (ci.isDatasetVisible(index)) {
+                                ci.hide(index);
+                                legendItem.hidden = true;
+                            } else {
+                                ci.show(index);
+                                legendItem.hidden = false;
+                            }
+
+                            autoScaleY(ci);
+                            ci.update('none');
+
+                            if (wrapper) {
+                                wrapper.classList.remove('chart-tf-exit');
+                                void wrapper.offsetWidth;
+                                wrapper.classList.add('chart-tf-enter');
+                            }
+
+                            setTimeout(() => {
+                                if (wrapper) wrapper.classList.remove('chart-tf-enter');
+                            }, 380);
+                        }, 190);
                     }
                 },
                 tooltip: {
