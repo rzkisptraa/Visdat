@@ -216,9 +216,16 @@ function updateStockHeatmap() {
             const latestItem = resampled[resampled.length - 1];
             const prevItem = resampled[resampled.length - 2] || latestItem;
 
-            // Formula standar: perubahan Close-to-Close (close hari ini vs close periode sebelumnya)
-            if (prevItem && prevItem.close !== 0) {
-                returnPct = ((latestItem.close - prevItem.close) / prevItem.close) * 100;
+            // Daily: close-to-close (close hari ini vs close kemarin) — standar broker
+            // Weekly/Monthly/Yearly: open-to-close dalam periode itu (reset tiap periode baru) — standar TradingView
+            if (heatmapTimeframe === 'daily') {
+                if (prevItem && prevItem.close !== 0) {
+                    returnPct = ((latestItem.close - prevItem.close) / prevItem.close) * 100;
+                }
+            } else {
+                if (latestItem && latestItem.open !== 0) {
+                    returnPct = ((latestItem.close - latestItem.open) / latestItem.open) * 100;
+                }
             }
         }
         returns[ticker] = returnPct;
